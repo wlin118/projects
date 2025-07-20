@@ -10,7 +10,7 @@ print("-"*50)
 
 #target
 if len(sys.argv) !=2:
-    print("input target IP")
+    print("No Target IP")
     sys.exit()
 target = socket.gethostbyname(sys.argv[1])
 now = datetime.now();
@@ -29,6 +29,7 @@ try:
         if result ==0: 
             print(f"Port {port} is open")
         soc.close()
+    print("Scan Complete")
 except socket.gaierror:
     #hostname invalid
     print("Hostname could not be resolved")
