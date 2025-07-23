@@ -1,40 +1,48 @@
-#import modules
-import sys;
-import socket;
-from datetime import datetime;
+#ping sweeper
+#send ICMP ping requests through subprocess, expects response from active hosts in subnet
 
 #script header
 print("-"*50)
-print("Port Scanner - by Jonathan Lin")
+print("Ping Sweep - by Jonathan Lin")
 print("-"*50)
 
-#target
-if len(sys.argv) !=2:
-    print("No Target IP")
-    sys.exit()
-target = socket.gethostbyname(sys.argv[1])
-now = datetime.now();
 
-print(f"starting scan on IP {target} at {now} for ports 1-10000")
-try:
-    #port ranges
-    for port in range(1,10000):
-        #AF_INET is address family for IPv4
-        #SOCK_STREAM is socket type for TCP
-        soc= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        #timeout for when port is closed or filtered, otherwise it will hang
-        soc.settimeout(2)
-        #result returns 0 if port is open, integer if closed
-        result = soc.connect_ex((target, port))
-        if result ==0: 
-            print(f"Port {port} is open")
-        soc.close()
-    print("Scan Complete")
-except socket.gaierror:
-    #hostname invalid
-    print("Hostname could not be resolved")
-    sys.exit()
-except socket.error:
-    #server not reached
-    print("Could not connect to server")
-    sys.exit()
+import subprocess
+import ipaddress
+import platform
+#get range of ip address to ping
+#start with /24 mask networks
+print("Input network/mask")
+net_in=input()
+#covert string into IPv4 object
+net = ipaddress.IPv4Network(net_in)
+#check for windows or linux
+os=platform.system().lower()
+if os=="windows":
+    #windows
+    flag="-n"
+else:
+    #macOS or Linux
+    flag="-c"
+
+
+for addr in net.hosts():
+    try: 
+        str_addr=str(addr)
+        #1 ping, -W 1000 milliseconds
+        cmd= ["ping", flag, str_addr]
+        #pings each ip addr in subnet
+        #shell= true otherwise tries to find program literally named the passed string'
+        #stdout and stderrsaved into result 
+        result= subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        output= result.stdout
+        error= result.stderr
+        #result.return code seems to always return 0 with ping on my version of windows
+        if "unreachable" in output or "timed out" in output:
+            print(f"Ping failed, {str_addr} is unreachable")
+        else:
+            #stderror empty when successful
+            print(f"Ping successful, {str_addr} is reachable")
+
+    except Exception as e:
+        print(f"Error pinging {str_addr}: {e}")
